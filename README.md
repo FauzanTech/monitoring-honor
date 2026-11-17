@@ -1,58 +1,89 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Monitoring Honor Mitra — BPS Kabupaten Pangkajene dan Kepulauan (7309)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi Laravel + Livewire untuk memantau total honor mitra per bulan terhadap limit SBKS,
+membantu pegawai memilih petugas yang masih longgar limitnya untuk kegiatan berikutnya.
 
-## About Laravel
+## Fitur
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Menu | Isi |
+|---|---|
+| **Monitoring** | Matriks 12 bulan per mitra: total honor, % dari limit, warna status. Kartu ringkasan (klik = filter), filter bulan/posisi, cari, urutkan "paling longgar". |
+| **Kegiatan** | Tambah/ubah/hapus kegiatan: nama, tim, jenis (Survei/Sensus), tanggal mulai–selesai, honor PPL & PML per bulan. Atribut POK (aktivitas, KRO, RO, komponen, akun) belum dipakai. |
+| **Kelola kegiatan** | • Unggah Excel petugas → **pratinjau kalkulasi** (honor kegiatan lain + honor kegiatan ini vs limit tiap bulan) sebelum disimpan.<br>• Buang petugas tertentu / semua yang merah dari pratinjau.<br>• **Lepas petugas dari kegiatan sebelumnya** langsung dari pratinjau atau daftar petugas, status dihitung ulang seketika.<br>• Ubah jabatan & honor per bulan, keluarkan petugas.<br>• **★ Rekomendasi petugas**: mitra diurutkan dari yang paling longgar bila ditambahkan dengan honor default. |
+| **Mitra** | Master mitra (ID SOBAT), impor dari Excel, halaman detail: kartu 12 bulan, riwayat penugasan + tombol Lepas, simulasi "Tugaskan ke kegiatan". |
+| **Pengaturan Limit** | Limit per jenis kegiatan × jabatan, ambang warna oranye (default 75 %). |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Rumus kalkulasi
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+total honor petugas bulan X = honor berjalan (dari Excel) + honor kegiatan ini (honor PPL/PML di form kegiatan)
+% limit                     = total ÷ limit
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+* **Honor berjalan** = honor yang sedang diterima petugas dari kegiatan lain, diunggah pegawai lewat Excel.
+  Rekap Excel adalah acuan utama; unggahan terbaru menimpa rekap lama untuk bulan yang sama.
+* **Honor kegiatan ini** = honor PPL/PML per bulan yang diisi di form kegiatan (bisa diubah per petugas di panel *Atur*).
+* Kegiatan yang ditambahkan lewat aplikasi **setelah** rekap diunggah ikut dijumlahkan (belum tercakup rekap);
+  kegiatan yang lebih lama dari rekap dianggap sudah termasuk, sehingga tidak dihitung dobel.
 
-## Contributing
+### Aturan status
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+* **Hijau** ≤ 75 % · **Oranye** 75–100 % (mendekati) · **Merah** > 100 % (melebihi) · abu-abu = belum ada honor.
+* Status petugas di kegiatan = bulan **terburuk** di periode kegiatan.
+* Limit awal (sheet LIMIT, nonorganik): Survei PPL/PML Rp3.910.000; Sensus PPL Rp4.418.000, PML Rp4.891.000.
 
-## Code of Conduct
+### Format Excel upload
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```
+sobat_id | nama (opsional) | jabatan | Jan 2026 | Feb 2026 | … | Des 2026
+```
 
-## Security Vulnerabilities
+* Kolom bulan berisi **honor berjalan**. Hanya bulan dalam periode kegiatan yang diambil; sel kosong = 0.
+  Judul bulan boleh `Jan`, `Januari 2026`, `2026-01`, `01/2026`, atau tanggal Excel.
+* `jabatan`: `ppl` / `pml` — jabatan petugas di kegiatan ini (menentukan honor PPL atau PML yang ditambahkan).
+* Alternatif: satu kolom `jumlah` → honor berjalan yang sama untuk setiap bulan periode.
+* ID SOBAT yang belum terdaftar dibuat otomatis sebagai mitra baru (pakai kolom `nama`).
+* `contoh-upload-penugasan.xlsx` berisi honor berjalan Jan–Des 2026 dari matriks untuk 15 mitra.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Instalasi
 
-## License
+Butuh PHP ≥ 8.2 (ekstensi zip, gd, xml, mbstring, pdo_sqlite/pdo_mysql) dan Composer.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+composer create-project laravel/laravel monitoring-honor
+cd monitoring-honor
+composer require livewire/livewire phpoffice/phpspreadsheet
+
+# salin folder app/, database/, resources/, routes/ dari paket ini ke proyek (timpa routes/web.php)
+
+# .env → atur DB (SQLite bawaan Laravel juga bisa), dan:
+#   APP_LOCALE=id
+#   APP_TIMEZONE=Asia/Makassar
+
+php artisan migrate
+php artisan db:seed --class=MonitoringHonorSeeder
+
+# (opsional, disarankan) impor master mitra + rekap honor berjalan 2026 dari matriks Excel
+php -d memory_limit=1G artisan honor:import-matriks /path/Matrix_Honor_Mitra_BPS_7309_2026.xlsx --tahun=2026 --fresh
+
+php artisan serve
+```
+
+Impor matriks membaca sheet **Petugas** (master mitra) dan sheet **JAN–DES** (jumlah *Honor yang Dibayarkan* per ID per bulan
+→ rekap honor berjalan). `--fresh` menghapus kegiatan hasil impor versi lama aplikasi ini; kegiatan buatan manual tidak tersentuh.
+
+Tailwind dimuat lewat CDN sehingga tidak perlu `npm`. Belum ada login; bila perlu, tambahkan Laravel Breeze/Fortify
+dan bungkus rute di `routes/web.php` dengan middleware `auth`.
+
+## Struktur
+
+```
+app/Services/HonorService.php          kalkulasi beban, limit, status, rekomendasi
+app/Services/PenugasanExcelReader.php  membaca & menyesuaikan Excel ke periode kegiatan
+app/Services/PenugasanService.php      simpan/lepas penugasan, simpan honor berjalan, sinkron periode
+app/Console/Commands/ImportMatriksHonor.php
+app/Livewire/{Monitoring, PengaturanLimit, Kegiatan/Index, Kegiatan/Show, Mitra/Index, Mitra/Show}.php
+database/migrations/…_create_monitoring_honor_tables.php
+  mitras · kegiatans · penugasans · honor_bulanans (honor kegiatan, bulan 'YYYY-MM')
+  honor_berjalans (rekap Excel) · limit_honors · pengaturans
+```
